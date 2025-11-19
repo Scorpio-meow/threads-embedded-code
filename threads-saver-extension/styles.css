@@ -1,0 +1,59 @@
+.threads-save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  color: #000;
+  font-weight: 500;
+  min-width: 40px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+}
+
+.threads-save-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.threads-save-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.threads-save-btn.saved {
+  background: rgba(0, 149, 246, 0.1);
+  color: #0095f6;
+}
+
+.threads-save-btn.saved svg {
+  fill: #0095f6;
+}
+
+.threads-save-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #000;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  z-index: 10000;
+  animation: slideIn 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

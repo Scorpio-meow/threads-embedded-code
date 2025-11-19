@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "Threads 程式碼儲存器",
+  "version": "1.0.1",
+  "description": "智能識別並儲存 Threads 上的程式碼片段，支援多種格式和語言檢測",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://www.threads.net/*",
+    "https://threads.net/*",
+    "https://www.threads.com/*",
+    "https://threads.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.threads.net/*",
+        "https://threads.net/*",
+        "https://www.threads.com/*",
+        "https://threads.com/*"
+      ],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon.svg",
+      "48": "icons/icon.svg",
+      "128": "icons/icon.svg"
+    }
+  },
+  "icons": {
+    "16": "icons/icon.svg",
+    "48": "icons/icon.svg",
+    "128": "icons/icon.svg"
+  }
+}

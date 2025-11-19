@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>已儲存的 Threads 文章</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 500px;
+      min-height: 400px;
+      max-height: 600px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #fff;
+    }
+
+    .header {
+      padding: 16px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .count {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+    }
+
+    .controls {
+      padding: 12px 20px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #e9ecef;
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .btn-export {
+      background: #0095f6;
+      color: white;
+    }
+
+    .btn-export:hover {
+      background: #0081d6;
+    }
+
+    .btn-clear {
+      background: #dc3545;
+      color: white;
+    }
+
+    .btn-clear:hover {
+      background: #c82333;
+    }
+
+    .content {
+      overflow-y: auto;
+      max-height: 480px;
+    }
+
+    .article-card {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e9ecef;
+      transition: background 0.2s;
+    }
+
+    .article-card:hover {
+      background: #f8f9fa;
+    }
+
+    .article-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .author {
+      font-weight: 600;
+      color: #000;
+      font-size: 14px;
+    }
+
+    .time {
+      color: #8e8e8e;
+      font-size: 12px;
+    }
+
+    .article-content {
+      color: #262626;
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 8px;
+      word-wrap: break-word;
+    }
+
+    .article-images {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .article-images img {
+      max-width: 100px;
+      max-height: 100px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+
+    .article-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-btn {
+      padding: 4px 10px;
+      font-size: 12px;
+      border: 1px solid #dbdbdb;
+      background: white;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #262626;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .action-btn:hover {
+      background: #f8f9fa;
+    }
+
+    .delete-btn {
+      color: #dc3545;
+      border-color: #dc3545;
+    }
+
+    .delete-btn:hover {
+      background: #dc3545;
+      color: white;
+    }
+
+    .empty-state {
+      padding: 60px 20px;
+      text-align: center;
+      color: #8e8e8e;
+    }
+
+    .empty-state svg {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .search-box {
+      padding: 12px 20px;
+      background: white;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #dbdbdb;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: #0095f6;
+    }
+
+    .code-blocks {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .code-block {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      padding: 12px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      position: relative;
+    }
+
+    .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #dee2e6;
+    }
+
+    .code-language {
+      background: #667eea;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .code-copy-btn {
+      background: #0095f6;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .code-copy-btn:hover {
+      background: #0081d6;
+    }
+
+    .code-content {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      color: #262626;
+      line-height: 1.4;
+    }
+
+    .embed-snippet {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      padding: 10px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 12px;
+      color: #495057;
+      margin-top: 8px;
+      white-space: pre-wrap;
+    }
+
+    .embed-snippet {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      padding: 10px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 12px;
+      color: #495057;
+      margin-top: 8px;
+      white-space: pre-wrap;
+    }
+
+    .tags {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .tag {
+      background: #e9ecef;
+      color: #495057;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>💻 已儲存的程式碼</h1>
+    <span class="count" id="articleCount">0 篇</span>
+  </div>
+
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="搜尋程式碼、語言或作者...">
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-export" id="exportBtn">導出所有內嵌程式碼</button>
+    <button class="btn btn-clear" id="clearBtn">清除全部</button>
+  </div>
+
+  <div class="content" id="articlesContainer">
+    <div class="empty-state">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/>
+      </svg>
+      <p>尚未儲存任何程式碼</p>
+      <p style="font-size: 12px; margin-top: 8px;">在 Threads 含程式碼的文章旁點擊儲存按鈕</p>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
