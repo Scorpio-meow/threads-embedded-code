@@ -303,7 +303,14 @@
 
   <div class="controls">
     <button class="btn btn-export" id="exportBtn">導出所有內嵌程式碼</button>
+    <button class="btn btn-export" id="refreshAllBtn">🔄 重新生成全部</button>
+    <button class="btn btn-export" id="diagBtn">📊 儲存診斷</button>
     <button class="btn btn-clear" id="clearBtn">清除全部</button>
+  </div>
+
+  <div id="diagnostics" style="display: none; padding: 12px 20px; background: #fff3cd; border-bottom: 1px solid #ffc107; font-size: 12px;">
+    <strong>📊 儲存空間診斷</strong><br>
+    <span id="diagInfo"></span>
   </div>
 
   <div class="content" id="articlesContainer">

@@ -84,104 +84,126 @@ function addSaveButtons() {
   
   console.log(`[Threads Saver] 找到 ${embedButtons.length} 個「取得內嵌程式碼」按鈕`);
   
-  embedButtons.forEach((embedButton) => {
+  console.log('[Threads Saver] 準備處理', embedButtons.length, '個嵌入按鈕');
+  
+  embedButtons.forEach((embedButton, index) => {
     // 檢查是否已經添加過監聽器
-    if (embedButton.dataset.threadsSaverAttached) return;
+    if (embedButton.dataset.threadsSaverAttached) {
+      console.log(`[Threads Saver] 按鈕 ${index + 1} 已處理過,跳過`);
+      return;
+    }
+    console.log(`[Threads Saver] 處理按鈕 ${index + 1}`);
     embedButton.dataset.threadsSaverAttached = 'true';
     
     // 攔截點擊事件
     embedButton.addEventListener('click', async (e) => {
       console.log('[Threads Saver] 偵測到「取得內嵌程式碼」被點擊');
       
-      // 找到當前貼文的連結
-      // 往上找到包含貼文連結的容器
-      let container = embedButton;
-      let postLink = null;
+      // 先提取內容和作者資訊(不依賴網址)
+      let content = '';
+      let author = '';
+      let authorUrl = '';
       
-      for (let i = 0; i < 15 && container; i++) {
-        container = container.parentElement;
-        if (container) {
-          const link = container.querySelector('a[href*="/post/"]');
-          if (link) {
-            postLink = link.href;
-            break;
-          }
+      const postElement = embedButton.closest('article') || 
+                         embedButton.closest('[role="article"]') ||
+                         embedButton.closest('div[class*="x1lliihq"]');
+      
+      if (postElement) {
+        console.log('[Threads Saver] 找到貼文容器元素');
+        
+        // 提取內容
+        const contentSpan = postElement.querySelector('[class*="x1lliihq"][class*="x1plvlek"]') ||
+                           postElement.querySelector('span[class*="x193iq5w"]');
+        if (contentSpan) {
+          content = contentSpan.innerText || '';
+          console.log('[Threads Saver] 提取到內容長度:', content.length);
+        }
+        
+        // 提取作者
+        const authorLink = postElement.querySelector('a[role="link"][href*="/@"]');
+        if (authorLink) {
+          author = authorLink.innerText || '';
+          authorUrl = authorLink.href || '';
+          console.log('[Threads Saver] 提取到作者:', author);
         }
       }
       
-      if (postLink) {
-        console.log('[Threads Saver] 找到貼文連結:', postLink);
+      // 等待對話框顯示以取得官方內嵌程式碼
+      setTimeout(async () => {
+        let postLink = null;
+        let embedCode = null;
         
-        // 等待一下讓嵌入程式碼顯示出來
-        setTimeout(async () => {
-          // 嘗試從頁面上找到嵌入程式碼的輸入框
-          const embedInput = document.querySelector('input[readonly][value*="blockquote"]');
-          let embedCode = null;
+        // 找到對話框
+        const dialogs = document.querySelectorAll('[role="dialog"]');
+        if (dialogs.length === 0) {
+          console.error('[Threads Saver] 找不到對話框');
+          showNotification('❌ 找不到內嵌程式碼對話框');
+          return;
+        }
+        
+        const dialog = dialogs[dialogs.length - 1];
+        console.log('[Threads Saver] 找到', dialogs.length, '個對話框,使用最新的一個');
+        
+        // **關鍵:直接從內嵌程式碼的 data-text-post-permalink 提取網址**
+        const embedInput = dialog.querySelector('input[readonly][value*="blockquote"]');
+        if (embedInput) {
+          embedCode = embedInput.value;
+          console.log('[Threads Saver] 從對話框取得官方內嵌程式碼');
           
-          if (embedInput) {
-            embedCode = embedInput.value;
-            console.log('[Threads Saver] 從輸入框取得內嵌程式碼');
-          } else {
-            // 備用方案：自己生成
-            embedCode = buildThreadsEmbedCode(postLink);
-            console.log('[Threads Saver] 自行生成內嵌程式碼');
+          // 從內嵌程式碼中提取 data-text-post-permalink 作為唯一可信來源
+          const permalinkMatch = embedCode.match(/data-text-post-permalink="([^"]+)"/);
+          if (permalinkMatch) {
+            postLink = permalinkMatch[1];
+            console.log('[Threads Saver] ✅ 從內嵌程式碼的 data-text-post-permalink 提取網址:', postLink);
           }
-          
-          // 儲存資料
-          const articleData = {
-            id: `embed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            postLink: postLink,
-            embedCode: embedCode,
-            savedAt: new Date().toISOString(),
-            content: '', // 可選：提取貼文內容
-            author: '', // 可選：提取作者
-            tags: [],
-            codeBlocks: [],
-            images: []
-          };
-          
-          await saveArticle(articleData, null);
-        }, 500);
-      }
+        } else {
+          console.error('[Threads Saver] 找不到內嵌程式碼輸入框');
+        }
+        
+        // 如果沒有成功提取到網址,無法儲存
+        if (!postLink) {
+          console.error('[Threads Saver] 無法從內嵌程式碼提取貼文連結');
+          showNotification('❌ 無法取得貼文連結');
+          return;
+        }
+        
+        // 如果還沒有作者資訊,從網址提取
+        if (!author) {
+          const authorMatch = postLink.match(/\/@([^\/]+)\//);
+          if (authorMatch) {
+            author = authorMatch[1];
+            authorUrl = `https://www.threads.net/@${author}`;
+            console.log('[Threads Saver] 從網址提取作者:', author);
+          }
+        }
+        
+        // 如果沒有內嵌程式碼(理論上不會發生,因為我們是從輸入框取得的)
+        if (!embedCode) {
+          embedCode = buildThreadsEmbedCode(postLink);
+          console.log('[Threads Saver] 自行生成內嵌程式碼');
+        }
+        
+        // 儲存資料
+        const articleData = {
+          id: `embed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          postLink: postLink,
+          embedCode: embedCode,
+          savedAt: new Date().toISOString(),
+          content: content.trim(),
+          author: author.trim(),
+          authorUrl: authorUrl,
+          tags: extractTags(content),
+          codeBlocks: [],
+          images: []
+        };
+        
+        console.log('[Threads Saver] 準備儲存文章:', articleData.postLink);
+        await saveArticle(articleData, null);
+      }, 1000); // 設定為 1000ms 確保內嵌程式碼對話框完全載入
     }, true); // 使用捕獲階段以確保我們的處理器先執行
     
     console.log('[Threads Saver] 已附加監聽器到「取得內嵌程式碼」按鈕');
   });
-}
-
-function createSaveButton(articleElement) {
-  const button = document.createElement('button');
-  button.className = 'threads-save-btn x1i10hfl x1qjc9v5 xjbqb8w xjqpnuy xa49m3k xqeqjp1 x1phubyo x13fuv20 x18b5jzi x1q0q8m5 x1t7ytsu x972fbf xcfux6l x1qhh985 xm0m39n x9f619 x1ypdohk xdl72j9 x2lah0s x3ct3a4 xdj266r x14z9mp xat24cr x1lziwak x2lwn1j xeuugli xexx8yu x4uap5 x18d9i69 xkhd6sd x1n2onr6 x16tdsg8 x1hl2dhg xggy1nq x1ja2u2z x1t137rt';
-  button.setAttribute('role', 'button');
-  button.setAttribute('tabindex', '0');
-  button.setAttribute('aria-label', '儲存內嵌程式碼');
-  button.setAttribute('title', '儲存此貼文的內嵌程式碼');
-  
-  // 使用與 Threads 分享按鈕相同的結構
-  button.innerHTML = `
-    <div class="x6s0dn4 x15dp1bm x1pg3x37 xqi6p0a x102ru31 x78zum5 xl56j7k x1n2onr6 x3oybdh xx6bhzk x12w9bfk x11xpdln xc9qbxq x1g0dm76 xpdmqnj x14atkfc">
-      <div class="x6s0dn4 x17zd0t2 x78zum5 xl56j7k">
-        <svg aria-label="儲存" role="img" viewBox="0 0 24 24" class="x1lliihq x2lah0s x1n2onr6 x16ye13r x5lhr3w x1i0azm7 xbh8q5q x73je2i x1f6yumg xvlca1e" style="--x-fill: currentColor; --x-height: 18px; --x-width: 18px;">
-          <title>儲存</title>
-          <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z" stroke="currentColor" stroke-width="1.5" fill="none"/>
-        </svg>
-      </div>
-    </div>
-  `;
-  
-  console.log('[Threads Saver] 創建儲存按鈕');
-  
-  button.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    console.log('[Threads Saver] 按鈕被點擊');
-
-    const articleData = extractArticleData(articleElement);
-    await saveArticle(articleData, button);
-  });
-  
-  return button;
 }
 
 function extractArticleData(articleElement) {
@@ -207,8 +229,9 @@ function extractArticleData(articleElement) {
   // 提取連結
   const postLink = articleElement.querySelector('a[href*="/post/"]')?.href || window.location.href;
 
-  // 產生 Threads 內嵌程式碼（等同分享->取得內嵌程式碼）
+  // 直接使用本地生成的嵌入代碼（用戶可以稍後手動更新）
   const embedCode = buildThreadsEmbedCode(postLink);
+  console.log('[Threads Saver] 使用本地生成的嵌入代碼（可稍後手動更新）');
   
   // 提取時間
   const timeElement = articleElement.querySelector('time');
@@ -233,7 +256,7 @@ function extractArticleData(articleElement) {
   };
 }
 
-// 依據貼文連結生成 Threads 內嵌程式碼（官方格式）
+// 依據貼文連結生成 Threads 內嵌程式碼(官方格式)
 function buildThreadsEmbedCode(postLink) {
   // Threads 官方嵌入語法 - 使用 text-post-media 格式
   if (!postLink) return '';
@@ -364,19 +387,35 @@ function extractTags(text) {
 
 async function saveArticle(articleData, button) {
   try {
+    console.log('[Threads Saver] ========== 開始儲存流程 ==========');
+    console.log('[Threads Saver] 文章資料:', {
+      postLink: articleData.postLink,
+      author: articleData.author,
+      contentLength: articleData.content?.length,
+      codeBlocksCount: articleData.codeBlocks?.length
+    });
+    
     // 獲取現有的儲存文章
     const result = await safeStorageGet(['savedArticles']);
     const savedArticles = result.savedArticles || [];
+    
+    console.log('[Threads Saver] 目前已儲存文章數:', savedArticles.length);
+    console.log('[Threads Saver] 準備儲存的文章連結:', articleData.postLink);
     
     // 檢查是否已經儲存過
     const existingIndex = savedArticles.findIndex(
       article => article.postLink === articleData.postLink
     );
     
+    console.log('[Threads Saver] 檢查重複結果:', existingIndex !== -1 ? `已存在於索引 ${existingIndex}` : '新文章');
+    
     if (existingIndex !== -1) {
-      // 已經儲存過，更新它
+      // 已經儲存過,更新它
+      console.log('[Threads Saver] 文章已存在於索引', existingIndex, ',將更新');
       savedArticles[existingIndex] = articleData;
+      console.log('[Threads Saver] 開始寫入更新...');
       await safeStorageSet({ savedArticles });
+      console.log('[Threads Saver] 更新成功!');
       
       if (button) {
         button.classList.add('saved');
@@ -384,8 +423,19 @@ async function saveArticle(articleData, button) {
       showNotification('✅ 內嵌程式碼已更新');
     } else {
       // 新增儲存
+      console.log('[Threads Saver] 新文章,將新增到列表');
+      console.log('[Threads Saver] 新增前文章數:', savedArticles.length);
       savedArticles.unshift(articleData);
-      await safeStorageSet({ savedArticles });
+      console.log('[Threads Saver] 新增後文章數:', savedArticles.length);
+      console.log('[Threads Saver] 開始寫入儲存...');
+      
+      try {
+        await safeStorageSet({ savedArticles });
+        console.log('[Threads Saver] ✅ 儲存成功!現在總共有', savedArticles.length, '篇文章');
+      } catch (saveError) {
+        console.error('[Threads Saver] ❌ 寫入失敗:', saveError);
+        throw saveError;
+      }
       
       if (button) {
         button.classList.add('saved');
@@ -399,8 +449,22 @@ async function saveArticle(articleData, button) {
       showNotification('✅ 內嵌程式碼已儲存');
     }
   } catch (error) {
-    console.error('[Threads Saver] 儲存失敗:', error);
-    showNotification('❌ 儲存失敗，請稍後再試');
+    console.error('[Threads Saver] ========== 儲存失敗 ==========');
+    console.error('[Threads Saver] 錯誤類型:', error.name);
+    console.error('[Threads Saver] 錯誤訊息:', error.message);
+    console.error('[Threads Saver] 完整錯誤:', error);
+    
+    // 檢查是否是儲存空間不足的錯誤
+    if (error.message && (error.message.includes('QUOTA') || error.message.includes('quota'))) {
+      console.error('[Threads Saver] 錯誤原因: 儲存空間配額已滿');
+      showNotification('❌ 儲存空間已滿!請開啟擴充功能清理舊文章');
+    } else if (error.message && error.message.includes('Extension context invalidated')) {
+      console.error('[Threads Saver] 錯誤原因: 擴充功能已失效');
+      showNotification('❌ 擴充功能已失效,請重新載入頁面');
+    } else {
+      console.error('[Threads Saver] 錯誤原因: 未知');
+      showNotification('❌ 儲存失敗: ' + (error.message || '請稍後再試'));
+    }
   }
 }
 
@@ -416,30 +480,3 @@ function showNotification(message) {
     setTimeout(() => notification.remove(), 300);
   }, 2000);
 }
-
-// 檢查已儲存的文章並更新按鈕狀態
-async function updateSavedButtonStates() {
-  if (!isExtensionAlive()) return;
-  const result = await safeStorageGet(['savedArticles']);
-  const savedArticles = result.savedArticles || [];
-  const savedLinks = savedArticles.map(article => article.postLink);
-  
-  document.querySelectorAll('.threads-save-btn').forEach(button => {
-    const articleElement = button.closest('article') || 
-                          button.closest('[role="article"]');
-    if (!articleElement) return;
-    
-    const postLink = articleElement.querySelector('a[href*="/post/"]')?.href;
-    if (savedLinks.includes(postLink)) {
-      button.classList.add('saved');
-      button.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-          <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/>
-        </svg>
-      `;
-    }
-  });
-}
-
-// 定期更新按鈕狀態
-setInterval(updateSavedButtonStates, 2000);

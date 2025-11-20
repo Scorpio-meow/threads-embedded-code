@@ -3,6 +3,99 @@
 let allArticles = [];
 let filteredArticles = [];
 
+// 重新生成單個文章的嵌入代碼代碼
+function refreshEmbedCode(articleId) {
+  const article = allArticles.find(a => a.id === articleId);
+  if (!article || !article.postLink) {
+    console.error('[Popup] 找不到文章或文章連結:', articleId);
+    showToast('❗ 找不到文章連結');
+    return false;
+  }
+  
+  console.log('[Popup] 重新生成嵌入代碼:', article.postLink);
+  showToast('🔄 正在重新生成...');
+  
+  // 使用本地生成函數重新生成嵌入代碼
+  const newEmbedCode = buildThreadsEmbedCode(article.postLink);
+  
+  if (!newEmbedCode) {
+    console.error('[Popup] 無法生成嵌入代碼');
+    showToast('❌ 生成失敗');
+    return false;
+  }
+  
+  // 更新文章的 embedCode
+  article.embedCode = newEmbedCode;
+  article.lastUpdated = new Date().toISOString();
+  
+  // 儲存到 storage
+  chrome.storage.local.set({ savedArticles: allArticles }).then(() => {
+    // 更新顯示
+    filteredArticles = allArticles.filter(a => 
+      filteredArticles.some(fa => fa.id === a.id)
+    );
+    renderArticles();
+    showToast('✅ 嵌入代碼已重新生成');
+  });
+  
+  return true;
+}
+
+// 批量重新生成所有文章的嵌入代碼
+function refreshAllEmbedCodes() {
+  if (allArticles.length === 0) {
+    showToast('❗ 沒有文章可以重新生成');
+    return;
+  }
+  
+  if (!confirm(`確定要重新生成全部 ${allArticles.length} 篇文章的嵌入代碼嗎？`)) {
+    return;
+  }
+  
+  showToast(`🔄 正在重新生成 ${allArticles.length} 篇文章...`);
+  
+  let successCount = 0;
+  let failCount = 0;
+  
+  allArticles.forEach(article => {
+    if (!article.postLink) {
+      failCount++;
+      return;
+    }
+    
+    const newEmbedCode = buildThreadsEmbedCode(article.postLink);
+    
+    if (newEmbedCode) {
+      article.embedCode = newEmbedCode;
+      article.lastUpdated = new Date().toISOString();
+      successCount++;
+    } else {
+      failCount++;
+    }
+  });
+  
+  // 儲存到 storage
+  chrome.storage.local.set({ savedArticles: allArticles }).then(() => {
+    // 更新顯示
+    filteredArticles = [...allArticles];
+    renderArticles();
+    showToast(`✅ 完成！成功: ${successCount}, 失敗: ${failCount}`);
+  });
+}
+
+// 生成 Threads 嵌入代碼（與 content.js 相同的邏輯）
+function buildThreadsEmbedCode(postLink) {
+  if (!postLink) return '';
+  
+  const match = postLink.match(/\/post\/([^\/\?]+)/);
+  const postId = match ? match[1] : '';
+  
+  return (
+    `<blockquote class="text-post-media" data-text-post-permalink="${postLink}" data-text-post-version="0" id="ig-tp-${postId}" style" background:#FFF; border-width: 1px; border-style: solid; border-color: #00000026; border-radius: 16px; max-width:650px; margin: 1px; min-width:270px; padding:0; width:99.375%; width:-webkit-calc(100% - 2px); width:calc(100% - 2px);"> <a href="${postLink}" style=" background:#FFFFFF; line-height:0; padding:0 0; text-align:center; text-decoration:none; width:100%; font-family: -apple-system, BlinkMacSystemFont, sans-serif;" target="_blank"> <div style=" padding: 40px; display: flex; flex-direction: column; align-items: center;"><div style=" display:block; height:32px; width:32px; padding-bottom:20px;"> <svg aria-label="Threads" height="32px" role="img" viewBox="0 0 192 192" width="32px" xmlns="http://www.w3.org/2000/svg"> <path d="M141.537 88.9883C140.71 88.5919 139.87 88.2104 139.019 87.8451C137.537 60.5382 122.616 44.905 97.5619 44.745C97.4484 44.7443 97.3355 44.7443 97.222 44.7443C82.2364 44.7443 69.7731 51.1409 62.102 62.7807L75.881 72.2328C81.6116 63.5383 90.6052 61.6848 97.2286 61.6848C97.3051 61.6848 97.3819 61.6848 97.4576 61.6855C105.707 61.7381 111.932 64.1366 115.961 68.814C118.893 72.2193 120.854 76.925 121.825 82.8638C114.511 81.6207 106.601 81.2385 98.145 81.7233C74.3247 83.0954 59.0111 96.9879 60.0396 116.292C60.5615 126.084 65.4397 134.508 73.775 140.011C80.8224 144.663 89.899 146.938 99.3323 146.423C111.79 145.74 121.563 140.987 128.381 132.296C133.559 125.696 136.834 117.143 138.28 106.366C144.217 109.949 148.617 114.664 151.047 120.332C155.179 129.967 155.42 145.8 142.501 158.708C131.182 170.016 117.576 174.908 97.0135 175.059C74.2042 174.89 56.9538 167.575 45.7381 153.317C35.2355 139.966 29.8077 120.682 29.6052 96C29.8077 71.3178 35.2355 52.0336 45.7381 38.6827C56.9538 24.4249 74.2039 17.11 97.0132 16.9405C119.988 17.1113 137.539 24.4614 149.184 38.788C154.894 45.8136 159.199 54.6488 162.037 64.9503L178.184 60.6422C174.744 47.9622 169.331 37.0357 161.965 27.974C147.036 9.60668 125.202 0.195148 97.0695 0H96.9569C68.8816 0.19447 47.2921 9.6418 32.7883 28.0793C19.8819 44.4864 13.2244 67.3157 13.0007 95.9325L13 96L13.0007 96.0675C13.2244 124.684 19.8819 147.514 32.7883 163.921C47.2921 182.358 68.8816 191.806 96.9569 192H97.0695C122.03 191.827 139.624 185.292 154.118 170.811C173.081 151.866 172.51 128.119 166.26 113.541C161.776 103.087 153.227 94.5962 141.537 88.9883ZM98.4405 129.507C88.0005 130.095 77.1544 125.409 76.6196 115.372C76.2232 107.93 81.9158 99.626 99.0812 98.6368C101.047 98.5234 102.976 98.468 104.871 98.468C111.106 98.468 116.939 99.0737 122.242 100.233C120.264 124.935 108.662 128.946 98.4405 129.507Z" /></svg></div><div style=" font-size: 15px; line-height: 21px; color: #000000; font-weight: 600; "> 在 Threads 查看</div></div></a></blockquote>\n` +
+    `<script async src="https://www.threads.com/embed.js"></script>`
+  );
+}
+
 // 載入時初始化
 document.addEventListener('DOMContentLoaded', async () => {
   await loadArticles();
@@ -36,6 +129,15 @@ function setupEventListeners() {
 
   // 導出功能
   document.getElementById('exportBtn').addEventListener('click', exportAllEmbedCodes);
+
+  // 更新全部嵌入代碼
+  const refreshAllBtn = document.getElementById('refreshAllBtn');
+  if (refreshAllBtn) {
+    refreshAllBtn.addEventListener('click', refreshAllEmbedCodes);
+  }
+
+  // 診斷功能
+  document.getElementById('diagBtn').addEventListener('click', showDiagnostics);
 
   // 清除全部
   document.getElementById('clearBtn').addEventListener('click', clearAllArticles);
@@ -96,6 +198,7 @@ function renderArticles() {
       <div class="article-actions">
         <a href="${article.postLink}" target="_blank" class="action-btn">查看原文</a>
         ${article.embedCode ? `<button class="action-btn copy-embed-btn" data-article-id="${article.id}">複製內嵌程式碼</button>` : ''}
+        ${article.postLink ? `<button class="action-btn refresh-embed-btn" data-article-id="${article.id}">🔄 重新生成</button>` : ''}
         <button class="action-btn delete-btn delete-article-btn" data-article-id="${article.id}">刪除</button>
       </div>
     </div>
@@ -106,6 +209,13 @@ function renderArticles() {
     btn.addEventListener('click', () => {
       const articleId = btn.dataset.articleId;
       copyEmbed(articleId);
+    });
+  });
+  
+  container.querySelectorAll('.refresh-embed-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const articleId = btn.dataset.articleId;
+      refreshEmbedCode(articleId);
     });
   });
   
@@ -251,27 +361,29 @@ async function exportAllEmbedCodes() {
     return;
   }
 
-  // 生成純內嵌程式碼的 HTML 文件
-  const embedCodes = articlesWithEmbed.map(article => article.embedCode).join('\n');
+  // 生成 JavaScript 陣列格式
+  const postsArray = articlesWithEmbed.map((article) => {
+    // 移除 embedCode 中的 script 標籤,只保留 blockquote
+    const blockquoteOnly = article.embedCode
+      .replace(/<script[^>]*>.*?<\/script>/g, '')
+      .trim();
+    
+    // 跳脫單引號
+    const escapedCode = blockquoteOnly.replace(/'/g, "\\'");
+    
+    return `            '${escapedCode}'`;
+  }).join(',\n');
   
-  const html = `<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Threads 內嵌程式碼 - ${new Date().toLocaleDateString('zh-TW')}</title>
-</head>
-<body>
-${embedCodes}
-</body>
-</html>`;
+  const jsContent = `        const posts = [
+${postsArray},
+        ];`;
 
-  // 下載 HTML 文件
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  // 下載 JS 文件
+  const blob = new Blob([jsContent], { type: 'text/javascript;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `threads-embed-codes-${new Date().toISOString().split('T')[0]}.html`;
+  link.download = `threads-embed-codes-${new Date().toISOString().split('T')[0]}.js`;
   link.click();
   URL.revokeObjectURL(url);
   
@@ -293,6 +405,67 @@ async function clearAllArticles() {
   filteredArticles = [];
   renderArticles();
   showToast('✅ 已清除所有文章');
+}
+
+// 診斷儲存空間
+async function showDiagnostics() {
+  const diagDiv = document.getElementById('diagnostics');
+  const diagInfo = document.getElementById('diagInfo');
+  
+  try {
+    // 獲取儲存的資料
+    const result = await chrome.storage.local.get(['savedArticles']);
+    const savedArticles = result.savedArticles || [];
+    
+    // 計算資料大小
+    const dataStr = JSON.stringify(savedArticles);
+    const dataSize = new Blob([dataStr]).size;
+    const dataSizeKB = (dataSize / 1024).toFixed(2);
+    const dataSizeMB = (dataSize / 1024 / 1024).toFixed(2);
+    
+    // Chrome Storage Local 限制是 10MB
+    const maxSizeMB = 10;
+    const usagePercent = ((dataSize / (maxSizeMB * 1024 * 1024)) * 100).toFixed(1);
+    
+    // 計算平均每篇大小
+    const avgSizePerArticle = savedArticles.length > 0 
+      ? (dataSize / savedArticles.length / 1024).toFixed(2) 
+      : 0;
+    
+    // 估算還能存幾篇
+    const remainingBytes = (maxSizeMB * 1024 * 1024) - dataSize;
+    const estimatedRemaining = savedArticles.length > 0
+      ? Math.floor(remainingBytes / (dataSize / savedArticles.length))
+      : 0;
+    
+    let warningMsg = '';
+    if (usagePercent > 90) {
+      warningMsg = '<br>⚠️ <strong style="color: #dc3545;">警告:儲存空間即將用盡!</strong>';
+    } else if (usagePercent > 75) {
+      warningMsg = '<br>⚠️ <strong style="color: #ff9800;">注意:儲存空間使用超過 75%</strong>';
+    }
+    
+    diagInfo.innerHTML = `
+      文章數量: <strong>${savedArticles.length} 篇</strong><br>
+      已使用空間: <strong>${dataSizeKB} KB (${dataSizeMB} MB)</strong><br>
+      使用率: <strong>${usagePercent}%</strong> (限制 ${maxSizeMB} MB)<br>
+      平均每篇: <strong>${avgSizePerArticle} KB</strong><br>
+      預估還可存: <strong>${estimatedRemaining > 0 ? estimatedRemaining : 0} 篇</strong>
+      ${warningMsg}
+    `;
+    
+    diagDiv.style.display = 'block';
+    
+    // 10秒後自動隱藏
+    setTimeout(() => {
+      diagDiv.style.display = 'none';
+    }, 10000);
+    
+  } catch (error) {
+    console.error('[Diagnostics] 診斷失敗:', error);
+    diagInfo.innerHTML = '❌ 診斷失敗: ' + error.message;
+    diagDiv.style.display = 'block';
+  }
 }
 
 function showToast(message) {
