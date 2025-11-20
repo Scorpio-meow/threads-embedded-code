@@ -57,3 +57,17 @@
     opacity: 1;
   }
 }
+
+/* Popup diagnostics and helper text */
+.diagnostics {
+  display: none;
+  padding: 12px 20px;
+  background: #fff3cd;
+  border-bottom: 1px solid #ffc107;
+  font-size: 12px;
+}
+
+.empty-help {
+  font-size: 12px;
+  margin-top: 8px;
+}
