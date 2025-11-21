@@ -99,33 +99,34 @@ function addSaveButtons() {
     embedButton.addEventListener('click', async (e) => {
       console.log('[Threads Saver] 偵測到「取得內嵌程式碼」被點擊');
       
-      // 先提取內容和作者資訊(不依賴網址)
-      let content = '';
-      let author = '';
-      let authorUrl = '';
+      let preContent = '';
+      let preAuthor = '';
+      let preAuthorUrl = '';
       
       const postElement = embedButton.closest('article') || 
                          embedButton.closest('[role="article"]') ||
                          embedButton.closest('div[class*="x1lliihq"]');
       
       if (postElement) {
-        console.log('[Threads Saver] 找到貼文容器元素');
+        console.log('[Threads Saver] 點擊前找到貼文容器元素');
         
         // 提取內容
         const contentSpan = postElement.querySelector('[class*="x1lliihq"][class*="x1plvlek"]') ||
                            postElement.querySelector('span[class*="x193iq5w"]');
         if (contentSpan) {
-          content = contentSpan.innerText || '';
-          console.log('[Threads Saver] 提取到內容長度:', content.length);
+          preContent = contentSpan.innerText || '';
+          console.log('[Threads Saver] 點擊前提取到內容長度:', preContent.length);
         }
         
         // 提取作者
         const authorLink = postElement.querySelector('a[role="link"][href*="/@"]');
         if (authorLink) {
-          author = authorLink.innerText || '';
-          authorUrl = authorLink.href || '';
-          console.log('[Threads Saver] 提取到作者:', author);
+          preAuthor = authorLink.innerText || '';
+          preAuthorUrl = authorLink.href || '';
+          console.log('[Threads Saver] 點擊前提取到作者:', preAuthor);
         }
+      } else {
+        console.log('[Threads Saver] ⚠️ 點擊前未找到貼文容器元素');
       }
       
       // 等待對話框顯示以取得官方內嵌程式碼
@@ -168,12 +169,14 @@ function addSaveButtons() {
         }
         
         // 如果還沒有作者資訊,從網址提取
-        if (!author) {
+        let fallbackAuthor = '';
+        let fallbackAuthorUrl = '';
+        if (!preAuthor) {
           const authorMatch = postLink.match(/\/@([^\/]+)\//);
           if (authorMatch) {
-            author = authorMatch[1];
-            authorUrl = `https://www.threads.net/@${author}`;
-            console.log('[Threads Saver] 從網址提取作者:', author);
+            fallbackAuthor = authorMatch[1];
+            fallbackAuthorUrl = `https://www.threads.net/@${fallbackAuthor}`;
+            console.log('[Threads Saver] 從網址提取作者:', fallbackAuthor);
           }
         }
         
@@ -183,18 +186,64 @@ function addSaveButtons() {
           console.log('[Threads Saver] 自行生成內嵌程式碼');
         }
         
+        // 使用點擊前預先抓取的資料,如果為空才使用 fallback
+        let finalContent = preContent;
+        let finalAuthor = preAuthor || fallbackAuthor;
+        let finalAuthorUrl = preAuthorUrl || fallbackAuthorUrl;
+        
+        // Fallback: 只在預先抓取失敗時才嘗試透過 postLink 重新查找
+        if (!finalContent && postLink) {
+          console.log('[Threads Saver] 預抓取資料不完整,嘗試透過 postLink 查找...');
+          const postId = postLink.match(/\/post\/([^\/\?]+)/)?.[1];
+          if (postId) {
+            // 嘗試找到包含此 postId 的連結所在的文章元素
+            const postLinks = Array.from(document.querySelectorAll(`a[href*="/post/${postId}"]`));
+            for (const link of postLinks) {
+              const article = link.closest('article') || 
+                             link.closest('[role="article"]') ||
+                             link.closest('div[class*="x1lliihq"]');
+              if (article) {
+                console.log('[Threads Saver] ✅ 透過 postLink 找到文章元素');
+                
+                // 提取內容
+                if (!finalContent) {
+                  const contentSpan = article.querySelector('[class*="x1lliihq"][class*="x1plvlek"]') ||
+                                     article.querySelector('span[class*="x193iq5w"]');
+                  if (contentSpan) {
+                    finalContent = contentSpan.innerText || '';
+                    console.log('[Threads Saver] Fallback 提取到內容長度:', finalContent.length);
+                  }
+                }
+                
+                // 提取作者
+                if (!finalAuthor) {
+                  const authorLink = article.querySelector('a[role="link"][href*="/@"]');
+                  if (authorLink) {
+                    finalAuthor = authorLink.innerText || '';
+                    finalAuthorUrl = authorLink.href || '';
+                    console.log('[Threads Saver] Fallback 提取到作者:', finalAuthor);
+                  }
+                }
+                
+                break;
+              }
+            }
+          }
+        }
+        
+        console.log('[Threads Saver] 最終資料 - 內容長度:', finalContent.length);
+
         // 儲存資料
         const articleData = {
           id: `embed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           postLink: postLink,
           embedCode: embedCode,
           savedAt: new Date().toISOString(),
-          content: content.trim(),
-          author: author.trim(),
-          authorUrl: authorUrl,
-          tags: extractTags(content),
-          codeBlocks: [],
-          images: []
+          content: finalContent.trim(),
+          author: finalAuthor.trim(),
+          authorUrl: finalAuthorUrl,
+          tags: extractTags(finalContent),
+          codeBlocks: []
         };
         
         console.log('[Threads Saver] 準備儲存文章:', articleData.postLink);
@@ -212,7 +261,7 @@ function extractArticleData(articleElement) {
                      articleElement.querySelector('span[class*="x193iq5w"]')?.innerText ||
                      articleElement.innerText;
   
-  // 提取程式碼區塊（若存在則保留）
+  // 提取程式碼區塊(若存在則保留)
   const codeBlocks = extractCodeBlocks(articleElement, textContent);
   
   // 提取作者資訊
@@ -220,11 +269,6 @@ function extractArticleData(articleElement) {
                        articleElement.querySelector('[class*="x1lliihq"] a');
   const author = authorElement?.innerText || '未知作者';
   const authorUrl = authorElement?.href || '';
-  
-  // 提取圖片（可能包含程式碼截圖）
-  const images = Array.from(articleElement.querySelectorAll('img'))
-    .map(img => img.src)
-    .filter(src => src && !src.includes('avatar'));
   
   // 提取連結
   const postLink = articleElement.querySelector('a[href*="/post/"]')?.href || window.location.href;
@@ -247,7 +291,6 @@ function extractArticleData(articleElement) {
     codeCount: codeBlocks.length,
     author: author.trim(),
     authorUrl,
-    images,
     postLink,
     embedCode,
     timestamp,

@@ -116,20 +116,6 @@
       word-wrap: break-word;
     }
 
-    .article-images {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 8px;
-    }
-
-    .article-images img {
-      max-width: 100px;
-      max-height: 100px;
-      border-radius: 8px;
-      object-fit: cover;
-    }
-
     .article-actions {
       display: flex;
       gap: 8px;
@@ -293,7 +279,7 @@
 </head>
 <body>
   <div class="header">
-    <h1>💻 已儲存的程式碼</h1>
+    <h1>已儲存的程式碼</h1>
     <span class="count" id="articleCount">0 篇</span>
   </div>
 
@@ -303,14 +289,8 @@
 
   <div class="controls">
     <button class="btn btn-export" id="exportBtn">導出所有內嵌程式碼</button>
-    <button class="btn btn-export" id="refreshAllBtn">🔄 重新生成全部</button>
-    <button class="btn btn-export" id="diagBtn">📊 儲存診斷</button>
+    <button class="btn btn-export" id="refreshAllBtn">重新生成全部</button>
     <button class="btn btn-clear" id="clearBtn">清除全部</button>
-  </div>
-
-  <div id="diagnostics" class="diagnostics">
-    <strong>📊 儲存空間診斷</strong><br>
-    <span id="diagInfo"></span>
   </div>
 
   <div class="content" id="articlesContainer">

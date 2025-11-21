@@ -3,24 +3,22 @@
 let allArticles = [];
 let filteredArticles = [];
 
-// 重新生成單個文章的嵌入代碼代碼
 function refreshEmbedCode(articleId) {
   const article = allArticles.find(a => a.id === articleId);
   if (!article || !article.postLink) {
     console.error('[Popup] 找不到文章或文章連結:', articleId);
-    showToast('❗ 找不到文章連結');
+    showToast('找不到文章連結');
     return false;
   }
   
   console.log('[Popup] 重新生成嵌入代碼:', article.postLink);
-  showToast('🔄 正在重新生成...');
+  showToast('正在重新生成...');
   
-  // 使用本地生成函數重新生成嵌入代碼
   const newEmbedCode = buildThreadsEmbedCode(article.postLink);
   
   if (!newEmbedCode) {
     console.error('[Popup] 無法生成嵌入代碼');
-    showToast('❌ 生成失敗');
+    showToast('生成失敗');
     return false;
   }
   
@@ -35,16 +33,15 @@ function refreshEmbedCode(articleId) {
       filteredArticles.some(fa => fa.id === a.id)
     );
     renderArticles();
-    showToast('✅ 嵌入代碼已重新生成');
+    showToast('嵌入代碼已重新生成');
   });
   
   return true;
 }
 
-// 批量重新生成所有文章的嵌入代碼
 function refreshAllEmbedCodes() {
   if (allArticles.length === 0) {
-    showToast('❗ 沒有文章可以重新生成');
+    showToast('沒有文章可以重新生成');
     return;
   }
   
@@ -52,7 +49,7 @@ function refreshAllEmbedCodes() {
     return;
   }
   
-  showToast(`🔄 正在重新生成 ${allArticles.length} 篇文章...`);
+  showToast(`正在重新生成 ${allArticles.length} 篇文章...`);
   
   let successCount = 0;
   let failCount = 0;
@@ -136,9 +133,6 @@ function setupEventListeners() {
     refreshAllBtn.addEventListener('click', refreshAllEmbedCodes);
   }
 
-  // 診斷功能
-  document.getElementById('diagBtn').addEventListener('click', showDiagnostics);
-
   // 清除全部
   document.getElementById('clearBtn').addEventListener('click', clearAllArticles);
 }
@@ -162,7 +156,8 @@ function renderArticles() {
     return;
   }
 
-  container.innerHTML = filteredArticles.map(article => `
+  container.innerHTML = filteredArticles.map(article => {
+    return `
     <div class="article-card" data-id="${article.id}">
       <div class="article-header">
         <div class="author">${escapeHtml(article.author || '')}</div>
@@ -188,21 +183,15 @@ function renderArticles() {
           `).join('')}
         </div>
       ` : ''}
-      ${article.images && article.images.length > 0 ? `
-        <div class="article-images">
-          ${article.images.slice(0, 3).map(img => `
-            <img src="${img}" alt="程式碼截圖">
-          `).join('')}
-        </div>
-      ` : ''}
       <div class="article-actions">
         <a href="${article.postLink}" target="_blank" class="action-btn">查看原文</a>
         ${article.embedCode ? `<button class="action-btn copy-embed-btn" data-article-id="${article.id}">複製內嵌程式碼</button>` : ''}
-        ${article.postLink ? `<button class="action-btn refresh-embed-btn" data-article-id="${article.id}">🔄 重新生成</button>` : ''}
+        ${article.postLink ? `<button class="action-btn refresh-embed-btn" data-article-id="${article.id}">重新生成</button>` : ''}
         <button class="action-btn delete-btn delete-article-btn" data-article-id="${article.id}">刪除</button>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
   
   // 綁定事件監聽器
   container.querySelectorAll('.copy-embed-btn').forEach(btn => {
@@ -405,67 +394,6 @@ async function clearAllArticles() {
   filteredArticles = [];
   renderArticles();
   showToast('✅ 已清除所有文章');
-}
-
-// 診斷儲存空間
-async function showDiagnostics() {
-  const diagDiv = document.getElementById('diagnostics');
-  const diagInfo = document.getElementById('diagInfo');
-  
-  try {
-    // 獲取儲存的資料
-    const result = await chrome.storage.local.get(['savedArticles']);
-    const savedArticles = result.savedArticles || [];
-    
-    // 計算資料大小
-    const dataStr = JSON.stringify(savedArticles);
-    const dataSize = new Blob([dataStr]).size;
-    const dataSizeKB = (dataSize / 1024).toFixed(2);
-    const dataSizeMB = (dataSize / 1024 / 1024).toFixed(2);
-    
-    // Chrome Storage Local 限制是 10MB
-    const maxSizeMB = 10;
-    const usagePercent = ((dataSize / (maxSizeMB * 1024 * 1024)) * 100).toFixed(1);
-    
-    // 計算平均每篇大小
-    const avgSizePerArticle = savedArticles.length > 0 
-      ? (dataSize / savedArticles.length / 1024).toFixed(2) 
-      : 0;
-    
-    // 估算還能存幾篇
-    const remainingBytes = (maxSizeMB * 1024 * 1024) - dataSize;
-    const estimatedRemaining = savedArticles.length > 0
-      ? Math.floor(remainingBytes / (dataSize / savedArticles.length))
-      : 0;
-    
-    let warningMsg = '';
-    if (usagePercent > 90) {
-      warningMsg = '<br>⚠️ <strong style="color: #dc3545;">警告:儲存空間即將用盡!</strong>';
-    } else if (usagePercent > 75) {
-      warningMsg = '<br>⚠️ <strong style="color: #ff9800;">注意:儲存空間使用超過 75%</strong>';
-    }
-    
-    diagInfo.innerHTML = `
-      文章數量: <strong>${savedArticles.length} 篇</strong><br>
-      已使用空間: <strong>${dataSizeKB} KB (${dataSizeMB} MB)</strong><br>
-      使用率: <strong>${usagePercent}%</strong> (限制 ${maxSizeMB} MB)<br>
-      平均每篇: <strong>${avgSizePerArticle} KB</strong><br>
-      預估還可存: <strong>${estimatedRemaining > 0 ? estimatedRemaining : 0} 篇</strong>
-      ${warningMsg}
-    `;
-    
-    diagDiv.style.display = 'block';
-    
-    // 10秒後自動隱藏
-    setTimeout(() => {
-      diagDiv.style.display = 'none';
-    }, 10000);
-    
-  } catch (error) {
-    console.error('[Diagnostics] 診斷失敗:', error);
-    diagInfo.innerHTML = '❌ 診斷失敗: ' + error.message;
-    diagDiv.style.display = 'block';
-  }
 }
 
 function showToast(message) {
