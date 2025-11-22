@@ -352,13 +352,19 @@ async function exportAllEmbedCodes() {
 
   // 生成 JavaScript 陣列格式
   const postsArray = articlesWithEmbed.map((article) => {
-    // 移除 embedCode 中的 script 標籤,只保留 blockquote
-    const blockquoteOnly = article.embedCode
-      .replace(/<script[^>]*>.*?<\/script>/g, '')
-      .trim();
+    let blockquoteOnly = article.embedCode;
+    let previous;
+    do {
+      previous = blockquoteOnly;
+      // 匹配 script 標籤,包括異常的結束標籤(如 </script foo="bar">)
+      blockquoteOnly = blockquoteOnly.replace(/<script\b[^>]*>[\s\S]*?<\/script\b[^>]*>/gi, '');
+    } while (blockquoteOnly !== previous);
+    blockquoteOnly = blockquoteOnly.trim();
     
-    // 跳脫單引號
-    const escapedCode = blockquoteOnly.replace(/'/g, "\\'");
+    // 正確的跳脫順序:先跳脫反斜線,再跳脫單引號
+    const escapedCode = blockquoteOnly
+      .replace(/\\/g, '\\\\')  // 先跳脫反斜線
+      .replace(/'/g, "\\'");   // 再跳脫單引號
     
     return `            '${escapedCode}'`;
   }).join(',\n');
