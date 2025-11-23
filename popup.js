@@ -287,10 +287,10 @@ async function copyCodeBlock(articleId, blockIndex) {
   
   try {
     await navigator.clipboard.writeText(codeBlock.code);
-    showToast('✅ 已複製程式碼');
+    showToast('已複製程式碼');
   } catch (err) {
     console.error('複製程式碼失敗:', err);
-    showToast('❌ 複製失敗');
+    showToast('複製失敗');
   }
 }
 
@@ -321,24 +321,24 @@ async function copyEmbed(articleId) {
   console.log('[Popup] Has embedCode:', article?.embedCode ? 'Yes' : 'No');
   
   if (!article || !article.embedCode) {
-    showToast('❌ 找不到內嵌程式碼');
+    showToast('找不到內嵌程式碼');
     return;
   }
   
   try {
     await navigator.clipboard.writeText(article.embedCode);
     console.log('[Popup] 複製成功');
-    showToast('✅ 已複製內嵌程式碼');
+    showToast('已複製內嵌程式碼');
   } catch (err) {
     console.error('[Popup] 複製失敗:', err);
-    showToast('❌ 複製失敗: ' + err.message);
+    showToast('複製失敗: ' + err.message);
   }
 }
 
 // 導出所有內嵌程式碼
 async function exportAllEmbedCodes() {
   if (allArticles.length === 0) {
-    showToast('❌ 沒有內嵌程式碼可以導出');
+    showToast('沒有內嵌程式碼可以導出');
     return;
   }
 
@@ -346,7 +346,7 @@ async function exportAllEmbedCodes() {
   const articlesWithEmbed = allArticles.filter(a => a.embedCode);
   
   if (articlesWithEmbed.length === 0) {
-    showToast('❌ 沒有內嵌程式碼可以導出');
+    showToast('沒有內嵌程式碼可以導出');
     return;
   }
 

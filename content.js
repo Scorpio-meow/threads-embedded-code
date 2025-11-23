@@ -126,7 +126,7 @@ function addSaveButtons() {
           console.log('[Threads Saver] 點擊前提取到作者:', preAuthor);
         }
       } else {
-        console.log('[Threads Saver] ⚠️ 點擊前未找到貼文容器元素');
+        console.log('[Threads Saver] 點擊前未找到貼文容器元素');
       }
       
       // 等待對話框顯示以取得官方內嵌程式碼
@@ -138,7 +138,7 @@ function addSaveButtons() {
         const dialogs = document.querySelectorAll('[role="dialog"]');
         if (dialogs.length === 0) {
           console.error('[Threads Saver] 找不到對話框');
-          showNotification('❌ 找不到內嵌程式碼對話框');
+          showNotification('找不到內嵌程式碼對話框');
           return;
         }
         
@@ -155,7 +155,7 @@ function addSaveButtons() {
           const permalinkMatch = embedCode.match(/data-text-post-permalink="([^"]+)"/);
           if (permalinkMatch) {
             postLink = permalinkMatch[1];
-            console.log('[Threads Saver] ✅ 從內嵌程式碼的 data-text-post-permalink 提取網址:', postLink);
+            console.log('[Threads Saver] 從內嵌程式碼的 data-text-post-permalink 提取網址:', postLink);
           }
         } else {
           console.error('[Threads Saver] 找不到內嵌程式碼輸入框');
@@ -164,7 +164,7 @@ function addSaveButtons() {
         // 如果沒有成功提取到網址,無法儲存
         if (!postLink) {
           console.error('[Threads Saver] 無法從內嵌程式碼提取貼文連結');
-          showNotification('❌ 無法取得貼文連結');
+          showNotification('無法取得貼文連結');
           return;
         }
         
@@ -203,7 +203,7 @@ function addSaveButtons() {
                              link.closest('[role="article"]') ||
                              link.closest('div[class*="x1lliihq"]');
               if (article) {
-                console.log('[Threads Saver] ✅ 透過 postLink 找到文章元素');
+                console.log('[Threads Saver] 透過 postLink 找到文章元素');
                 
                 // 提取內容
                 if (!finalContent) {
@@ -463,7 +463,7 @@ async function saveArticle(articleData, button) {
       if (button) {
         button.classList.add('saved');
       }
-      showNotification('✅ 內嵌程式碼已更新');
+      showNotification('內嵌程式碼已更新');
     } else {
       // 新增儲存
       console.log('[Threads Saver] 新文章,將新增到列表');
@@ -474,9 +474,9 @@ async function saveArticle(articleData, button) {
       
       try {
         await safeStorageSet({ savedArticles });
-        console.log('[Threads Saver] ✅ 儲存成功!現在總共有', savedArticles.length, '篇文章');
+        console.log('[Threads Saver] 儲存成功!現在總共有', savedArticles.length, '篇文章');
       } catch (saveError) {
-        console.error('[Threads Saver] ❌ 寫入失敗:', saveError);
+        console.error('[Threads Saver] 寫入失敗:', saveError);
         throw saveError;
       }
       
@@ -489,7 +489,7 @@ async function saveArticle(articleData, button) {
           </svg>
         `;
       }
-      showNotification('✅ 內嵌程式碼已儲存');
+      showNotification('內嵌程式碼已儲存');
     }
   } catch (error) {
     console.error('[Threads Saver] ========== 儲存失敗 ==========');
@@ -500,13 +500,13 @@ async function saveArticle(articleData, button) {
     // 檢查是否是儲存空間不足的錯誤
     if (error.message && (error.message.includes('QUOTA') || error.message.includes('quota'))) {
       console.error('[Threads Saver] 錯誤原因: 儲存空間配額已滿');
-      showNotification('❌ 儲存空間已滿!請開啟擴充功能清理舊文章');
+      showNotification('儲存空間已滿!請開啟擴充功能清理舊文章');
     } else if (error.message && error.message.includes('Extension context invalidated')) {
       console.error('[Threads Saver] 錯誤原因: 擴充功能已失效');
-      showNotification('❌ 擴充功能已失效,請重新載入頁面');
+      showNotification('擴充功能已失效,請重新載入頁面');
     } else {
       console.error('[Threads Saver] 錯誤原因: 未知');
-      showNotification('❌ 儲存失敗: ' + (error.message || '請稍後再試'));
+      showNotification('儲存失敗: ' + (error.message || '請稍後再試'));
     }
   }
 }
