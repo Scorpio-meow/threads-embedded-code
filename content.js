@@ -301,7 +301,7 @@ function extractArticleData(articleElement) {
 
 // 依據貼文連結生成 Threads 內嵌程式碼(官方格式)
 function buildThreadsEmbedCode(postLink) {
-  // Threads 官方嵌入語法 - 使用 text-post-media 格式
+  // Threads 官方嵌入語法 - 使用完整版本
   if (!postLink) return '';
   
   // 從 URL 提取 permalink ID (例如 DRMxtAvkr5q)
