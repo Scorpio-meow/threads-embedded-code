@@ -76,7 +76,7 @@ function refreshAllEmbedCodes() {
     // 更新顯示
     filteredArticles = [...allArticles];
     renderArticles();
-    showToast(`✅ 完成！成功: ${successCount}, 失敗: ${failCount}`);
+    showToast(`完成！成功: ${successCount}, 失敗: ${failCount}`);
   });
 }
 
@@ -260,7 +260,7 @@ async function deleteArticle(articleId) {
   
   filteredArticles = filteredArticles.filter(article => article.id !== articleId);
   renderArticles();
-  showToast('✅ 已刪除');
+  showToast('已刪除');
 }
 
 window.copyArticle = async function(articleId) {
@@ -382,7 +382,7 @@ ${postsArray},
   link.click();
   URL.revokeObjectURL(url);
   
-  showToast(`✅ 已導出 ${articlesWithEmbed.length} 個內嵌程式碼`);
+  showToast(`已導出 ${articlesWithEmbed.length} 個內嵌程式碼`);
 }
 
 async function clearAllArticles() {
@@ -399,7 +399,7 @@ async function clearAllArticles() {
   allArticles = [];
   filteredArticles = [];
   renderArticles();
-  showToast('✅ 已清除所有文章');
+  showToast('已清除所有文章');
 }
 
 function showToast(message) {
