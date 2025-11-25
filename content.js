@@ -51,6 +51,13 @@ async function safeStorageSet(obj) {
 function init() {
   console.log('[Threads Saver] 插件初始化');
   
+  // 防禦性檢查：確保 document.body 存在
+  if (!document.body) {
+    console.warn('[Threads Saver] document.body 不存在，延遲初始化');
+    setTimeout(init, 500);
+    return;
+  }
+  
   // 使用 MutationObserver 監聽動態加載的內容
   const observer = new MutationObserver((mutations) => {
     addSaveButtons();
@@ -190,25 +197,56 @@ function addSaveButtons() {
         let finalContent = preContent;
         let finalAuthor = preAuthor || fallbackAuthor;
         let finalAuthorUrl = preAuthorUrl || fallbackAuthorUrl;
+        let finalTimestamp = null;
+        let finalTimestampTitle = null;
         
-        // Fallback: 只在預先抓取失敗時才嘗試透過 postLink 重新查找
-        if (!finalContent && postLink) {
-          console.log('[Threads Saver] 預抓取資料不完整,嘗試透過 postLink 查找...');
+        // 嘗試從點擊前找到的 postElement 提取時間
+        if (postElement) {
+          const timeElement = postElement.querySelector('time[datetime]');
+          if (timeElement) {
+            finalTimestamp = timeElement.getAttribute('datetime');
+            finalTimestampTitle = timeElement.getAttribute('title') || '';
+            console.log('[Threads Saver] 點擊前提取到發文時間:', finalTimestamp, '| title:', finalTimestampTitle);
+          }
+        }
+        
+        // Fallback: 無論如何都嘗試透過 postLink 查找更多資料
+        if (postLink) {
+          console.log('[Threads Saver] 嘗試透過 postLink 查找文章資料...');
           const postId = postLink.match(/\/post\/([^\/\?]+)/)?.[1];
           if (postId) {
             // 嘗試找到包含此 postId 的連結所在的文章元素
             const postLinks = Array.from(document.querySelectorAll(`a[href*="/post/${postId}"]`));
+            console.log('[Threads Saver] 找到', postLinks.length, '個符合的連結');
+            
             for (const link of postLinks) {
-              const article = link.closest('article') || 
-                             link.closest('[role="article"]') ||
-                             link.closest('div[class*="x1lliihq"]');
+              // 向上查找貼文容器（嘗試多種選擇器）
+              let article = link.closest('article') || 
+                           link.closest('[role="article"]') ||
+                           link.closest('[data-pressable-container="true"]');
+              
+              // 如果還是找不到，嘗試向上找更多層級
+              if (!article) {
+                let parent = link.parentElement;
+                for (let i = 0; i < 15 && parent; i++) {
+                  // 檢查是否包含時間元素，這是貼文容器的特徵
+                  if (parent.querySelector('time[datetime]')) {
+                    article = parent;
+                    console.log('[Threads Saver] 透過 time 元素找到貼文容器，層級:', i);
+                    break;
+                  }
+                  parent = parent.parentElement;
+                }
+              }
+              
               if (article) {
                 console.log('[Threads Saver] 透過 postLink 找到文章元素');
                 
                 // 提取內容
                 if (!finalContent) {
                   const contentSpan = article.querySelector('[class*="x1lliihq"][class*="x1plvlek"]') ||
-                                     article.querySelector('span[class*="x193iq5w"]');
+                                     article.querySelector('span[class*="x193iq5w"]') ||
+                                     article.querySelector('span[dir="auto"]');
                   if (contentSpan) {
                     finalContent = contentSpan.innerText || '';
                     console.log('[Threads Saver] Fallback 提取到內容長度:', finalContent.length);
@@ -225,19 +263,45 @@ function addSaveButtons() {
                   }
                 }
                 
-                break;
+                // 提取發文時間（datetime 和 title）
+                if (!finalTimestamp) {
+                  const timeElement = article.querySelector('time[datetime]');
+                  if (timeElement) {
+                    finalTimestamp = timeElement.getAttribute('datetime');
+                    finalTimestampTitle = timeElement.getAttribute('title') || '';
+                    console.log('[Threads Saver] Fallback 提取到發文時間:', finalTimestamp, '| title:', finalTimestampTitle);
+                  }
+                }
+                
+                // 如果找到時間就跳出
+                if (finalTimestamp) {
+                  break;
+                }
+              }
+            }
+            
+            // 如果還是沒找到時間，嘗試在整個頁面中搜尋該貼文的時間連結
+            if (!finalTimestamp) {
+              console.log('[Threads Saver] 嘗試直接搜尋 time 元素...');
+              const allTimeLinks = document.querySelectorAll(`a[href*="/post/${postId}"] time[datetime]`);
+              if (allTimeLinks.length > 0) {
+                finalTimestamp = allTimeLinks[0].getAttribute('datetime');
+                finalTimestampTitle = allTimeLinks[0].getAttribute('title') || '';
+                console.log('[Threads Saver] 從連結內的 time 提取到發文時間:', finalTimestamp, '| title:', finalTimestampTitle);
               }
             }
           }
         }
         
-        console.log('[Threads Saver] 最終資料 - 內容長度:', finalContent.length);
+        console.log('[Threads Saver] 最終資料 - 內容長度:', finalContent.length, '| 發文時間:', finalTimestamp, '| 時間標題:', finalTimestampTitle);
 
         // 儲存資料
         const articleData = {
           id: `embed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           postLink: postLink,
           embedCode: embedCode,
+          timestamp: finalTimestamp,
+          timestampTitle: finalTimestampTitle,
           savedAt: new Date().toISOString(),
           content: finalContent.trim(),
           author: finalAuthor.trim(),
@@ -277,9 +341,10 @@ function extractArticleData(articleElement) {
   const embedCode = buildThreadsEmbedCode(postLink);
   console.log('[Threads Saver] 使用本地生成的嵌入代碼（可稍後手動更新）');
   
-  // 提取時間
+  // 提取時間（datetime 和 title）
   const timeElement = articleElement.querySelector('time');
   const timestamp = timeElement?.getAttribute('datetime') || new Date().toISOString();
+  const timestampTitle = timeElement?.getAttribute('title') || '';
   
   // 提取標籤或語言（如果有）
   const tags = extractTags(textContent);
@@ -294,6 +359,7 @@ function extractArticleData(articleElement) {
     postLink,
     embedCode,
     timestamp,
+    timestampTitle,
     tags,
     savedAt: new Date().toISOString()
   };

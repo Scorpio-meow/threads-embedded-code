@@ -1,10 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Threads 程式碼儲存器",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "智能識別並儲存 Threads 上的程式碼片段，支援手動更新最新的嵌入代碼",
   "permissions": [
-    "storage"
+    "storage",
+    "tabs",
+    "scripting"
   ],
   "host_permissions": [
     "https://www.threads.net/*",

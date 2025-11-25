@@ -130,6 +130,41 @@
       background: rgba(255, 48, 64, 0.05);
     }
 
+    /* Sort Container */
+    .sort-container {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-right: auto;
+    }
+
+    .sort-container label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .sort-select {
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: #fff;
+      font-size: 12px;
+      color: var(--text-primary);
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .sort-select:hover {
+      border-color: #ccc;
+    }
+
+    .sort-select:focus {
+      border-color: #000;
+      box-shadow: 0 0 0 1px #000;
+    }
+
     /* Content List */
     .content {
       padding: 16px;
@@ -158,7 +193,7 @@
     .article-header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       margin-bottom: 10px;
     }
 
@@ -168,8 +203,15 @@
       color: #000;
     }
 
+    .time-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+
     .time {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-secondary);
     }
 
@@ -364,9 +406,26 @@
   </div>
 
   <div class="controls">
-    <button class="btn btn-export" id="exportBtn">導出所有內嵌程式碼</button>
-    <button class="btn btn-export" id="refreshAllBtn">重新生成全部</button>
+    <div class="sort-container">
+      <label for="sortSelect">排序：</label>
+      <select id="sortSelect" class="sort-select">
+        <option value="savedAt-desc">儲存時間 (新到舊)</option>
+        <option value="savedAt-asc">儲存時間 (舊到新)</option>
+        <option value="timestamp-desc">發文時間 (新到舊)</option>
+        <option value="timestamp-asc">發文時間 (舊到新)</option>
+        <option value="author-asc">作者 (A-Z)</option>
+        <option value="author-desc">作者 (Z-A)</option>
+        <option value="codeCount-desc">程式碼數量 (多到少)</option>
+        <option value="codeCount-asc">程式碼數量 (少到多)</option>
+      </select>
+    </div>
+    <button class="btn btn-export" id="exportBtn" title="匯出簡易版 (embed code only)">匯出</button>
+    <button class="btn btn-export" id="exportFullBtn" title="匯出完整版 (含時間/作者/內容)">完整匯出</button>
+    <button class="btn btn-export" id="importBtn">匯入</button>
+    <button class="btn btn-export" id="refreshAllBtn">重新生成</button>
+    <button class="btn btn-export" id="updateTimestampsBtn" title="從 Threads 頁面抓取精確發文時間">更新時間</button>
     <button class="btn btn-clear" id="clearBtn">清除全部</button>
+    <input type="file" id="importFileInput" accept=".js,.json" style="display: none;">
   </div>
 
   <div class="content" id="articlesContainer">
