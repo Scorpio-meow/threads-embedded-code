@@ -400,57 +400,170 @@ function renderArticles() {
   countElement.textContent = `${filteredArticles.length} 篇`;
 
   if (filteredArticles.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/>
-        </svg>
-        <p>${allArticles.length === 0 ? '尚未儲存任何程式碼' : '找不到符合的程式碼'}</p>
-        ${allArticles.length === 0 ? '<p class="empty-help">在 Threads 含程式碼的文章旁點擊儲存按鈕</p>' : ''}
-      </div>
-    `;
+    // 安全生成空狀態 DOM
+    container.innerHTML = '';
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'currentColor');
+    svg.innerHTML = '<path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/>';
+    empty.appendChild(svg);
+    const msg = document.createElement('p');
+    msg.textContent = allArticles.length === 0 ? '尚未儲存任何程式碼' : '找不到符合的程式碼';
+    empty.appendChild(msg);
+    if (allArticles.length === 0) {
+      const help = document.createElement('p');
+      help.className = 'empty-help';
+      help.textContent = '在 Threads 含程式碼的文章旁點擊儲存按鈕';
+      empty.appendChild(help);
+    }
+    container.appendChild(empty);
     return;
   }
 
-  container.innerHTML = filteredArticles.map(article => {
-    return `
-    <div class="article-card" data-id="${article.id}">
-      <div class="article-header">
-        <div class="author">${escapeHtml(article.author || '')}</div>
-        <div class="time-info">
-          <div class="time" title="${escapeHtml(article.timestampTitle || article.timestamp || '')}">發文：${article.timestampTitle ? escapeHtml(article.timestampTitle) : formatTime(article.timestamp)}</div>
-          <div class="time" title="${article.savedAt || ''}">儲存：${formatTime(article.savedAt)}</div>
-        </div>
-      </div>
-      <div class="article-content">${escapeHtml((article.content || '').substring(0, 200))}${(article.content || '').length > 200 ? '...' : ''}</div>
-      ${article.embedCode ? `<div class="embed-snippet">${escapeHtml(article.embedCode.substring(0, 300))}${article.embedCode.length > 300 ? '\n...' : ''}</div>` : ''}
-      ${article.tags && article.tags.length > 0 ? `
-        <div class="tags">
-          ${article.tags.map(tag => `<span class="tag">#${escapeHtml(tag)}</span>`).join('')}
-        </div>
-      ` : ''}
-      ${article.codeBlocks && article.codeBlocks.length > 0 ? `
-        <div class="code-blocks">
-          ${article.codeBlocks.map((block, idx) => `
-            <div class="code-block">
-              <div class="code-header">
-                <span class="code-language">${escapeHtml(block.language)}</span>
-                <button class="code-copy-btn" data-article-id="${article.id}" data-index="${idx}">複製</button>
-              </div>
-              <div class="code-content">${escapeHtml(block.code.substring(0, 500))}${block.code.length > 500 ? '\n...' : ''}</div>
-            </div>
-          `).join('')}
-        </div>
-      ` : ''}
-      <div class="article-actions">
-        <a href="${article.postLink}" target="_blank" class="action-btn">查看原文</a>
-        ${article.embedCode ? `<button class="action-btn copy-embed-btn" data-article-id="${article.id}">複製內嵌程式碼</button>` : ''}
-        ${article.postLink ? `<button class="action-btn refresh-embed-btn" data-article-id="${article.id}">重新生成</button>` : ''}
-        <button class="action-btn delete-btn delete-article-btn" data-article-id="${article.id}">刪除</button>
-      </div>
-    </div>
-  `;
-  }).join('');
+  // 以 DOM API 建立內容（避免 innerHTML 與 XSS 風險）
+  container.innerHTML = '';
+  filteredArticles.forEach(article => {
+    const card = document.createElement('div');
+    card.className = 'article-card';
+    card.dataset.id = article.id;
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'article-header';
+
+    const authorEl = document.createElement('div');
+    authorEl.className = 'author';
+    authorEl.textContent = article.author || '';
+
+    const timeInfo = document.createElement('div');
+    timeInfo.className = 'time-info';
+
+    const timePost = document.createElement('div');
+    timePost.className = 'time';
+    timePost.title = article.timestampTitle || article.timestamp || '';
+    timePost.textContent = '發文：' + (article.timestampTitle ? article.timestampTitle : formatTime(article.timestamp));
+
+    const timeSaved = document.createElement('div');
+    timeSaved.className = 'time';
+    timeSaved.title = article.savedAt || '';
+    timeSaved.textContent = '儲存：' + formatTime(article.savedAt);
+
+    timeInfo.appendChild(timePost);
+    timeInfo.appendChild(timeSaved);
+    header.appendChild(authorEl);
+    header.appendChild(timeInfo);
+    card.appendChild(header);
+
+    // Article content
+    const contentEl = document.createElement('div');
+    contentEl.className = 'article-content';
+    const contentText = (article.content || '').substring(0, 200);
+    contentEl.textContent = contentText + ((article.content || '').length > 200 ? '...' : '');
+    card.appendChild(contentEl);
+
+    // Embed snippet (display as text in pre/code)
+    if (article.embedCode) {
+      const embedWrapper = document.createElement('div');
+      embedWrapper.className = 'embed-snippet';
+      const pre = document.createElement('pre');
+      pre.style.margin = '0';
+      const code = document.createElement('code');
+      const embedText = (article.embedCode || '').substring(0, 300) + ((article.embedCode || '').length > 300 ? '\n...' : '');
+      code.textContent = embedText;
+      pre.appendChild(code);
+      embedWrapper.appendChild(pre);
+      card.appendChild(embedWrapper);
+    }
+
+    // Tags
+    if (article.tags && article.tags.length > 0) {
+      const tagsContainer = document.createElement('div');
+      tagsContainer.className = 'tags';
+      article.tags.forEach(tag => {
+        const tagEl = document.createElement('span');
+        tagEl.className = 'tag';
+        tagEl.textContent = '#' + (tag || '');
+        tagsContainer.appendChild(tagEl);
+      });
+      card.appendChild(tagsContainer);
+    }
+
+    // Code blocks
+    if (article.codeBlocks && article.codeBlocks.length > 0) {
+      const blocksContainer = document.createElement('div');
+      blocksContainer.className = 'code-blocks';
+      article.codeBlocks.forEach((block, idx) => {
+        const blockEl = document.createElement('div');
+        blockEl.className = 'code-block';
+
+        const headerEl = document.createElement('div');
+        headerEl.className = 'code-header';
+        const langSpan = document.createElement('span');
+        langSpan.className = 'code-language';
+        langSpan.textContent = block.language || '';
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'code-copy-btn';
+        copyBtn.setAttribute('data-article-id', article.id);
+        copyBtn.setAttribute('data-index', String(idx));
+        copyBtn.textContent = '複製';
+        headerEl.appendChild(langSpan);
+        headerEl.appendChild(copyBtn);
+
+        const blockContent = document.createElement('div');
+        blockContent.className = 'code-content';
+        const blockPre = document.createElement('pre');
+        blockPre.style.margin = '0';
+        const blockCode = document.createElement('code');
+        const codeText = (block.code || '').substring(0, 500) + ((block.code || '').length > 500 ? '\n...' : '');
+        blockCode.textContent = codeText;
+        blockPre.appendChild(blockCode);
+        blockContent.appendChild(blockPre);
+
+        blockEl.appendChild(headerEl);
+        blockEl.appendChild(blockContent);
+        blocksContainer.appendChild(blockEl);
+      });
+      card.appendChild(blocksContainer);
+    }
+
+    // Actions
+    const actions = document.createElement('div');
+    actions.className = 'article-actions';
+
+    const link = document.createElement('a');
+    link.className = 'action-btn';
+    link.href = article.postLink || '#';
+    link.target = '_blank';
+    link.textContent = '查看原文';
+    actions.appendChild(link);
+
+    if (article.embedCode) {
+      const copyEmbedBtn = document.createElement('button');
+      copyEmbedBtn.className = 'action-btn copy-embed-btn';
+      copyEmbedBtn.setAttribute('data-article-id', article.id);
+      copyEmbedBtn.textContent = '複製內嵌程式碼';
+      actions.appendChild(copyEmbedBtn);
+    }
+
+    if (article.postLink) {
+      const refreshBtn = document.createElement('button');
+      refreshBtn.className = 'action-btn refresh-embed-btn';
+      refreshBtn.setAttribute('data-article-id', article.id);
+      refreshBtn.textContent = '重新生成';
+      actions.appendChild(refreshBtn);
+    }
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'action-btn delete-btn delete-article-btn';
+    deleteBtn.setAttribute('data-article-id', article.id);
+    deleteBtn.textContent = '刪除';
+    actions.appendChild(deleteBtn);
+
+    card.appendChild(actions);
+    container.appendChild(card);
+  });
   
   // 綁定事件監聽器
   container.querySelectorAll('.copy-embed-btn').forEach(btn => {
