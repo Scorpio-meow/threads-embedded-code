@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -86,11 +87,11 @@
       box-shadow: 0 0 0 1px #000;
     }
 
-    /* Controls */
     .controls {
       padding: 12px 20px;
       background: #fff;
       display: flex;
+      flex-wrap: wrap;
       gap: 8px;
       border-bottom: 1px solid var(--border-color);
     }
@@ -110,9 +111,9 @@
     .btn:hover {
       background: var(--hover-bg);
       transform: translateY(-1px);
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     }
-    
+
     .btn:active {
       transform: translateY(0);
     }
@@ -125,7 +126,7 @@
       color: var(--danger-color);
       border-color: rgba(255, 48, 64, 0.2);
     }
-    
+
     .btn-clear:hover {
       background: rgba(255, 48, 64, 0.05);
     }
@@ -185,7 +186,7 @@
     }
 
     .article-card:hover {
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
       border-color: #ccc;
       transform: translateY(-1px);
     }
@@ -268,7 +269,7 @@
       cursor: pointer;
       transition: all 0.2s;
     }
-    
+
     .code-copy-btn:hover {
       background: #444;
       color: #fff;
@@ -361,7 +362,7 @@
       flex-direction: column;
       align-items: center;
     }
-    
+
     .empty-state svg {
       width: 64px;
       height: 64px;
@@ -380,21 +381,22 @@
       width: 8px;
       height: 8px;
     }
-    
+
     ::-webkit-scrollbar-track {
       background: transparent;
     }
-    
+
     ::-webkit-scrollbar-thumb {
       background: #d1d1d1;
       border-radius: 4px;
     }
-    
+
     ::-webkit-scrollbar-thumb:hover {
       background: #b0b0b0;
     }
   </style>
 </head>
+
 <body>
   <div class="header">
     <h1>已儲存的程式碼</h1>
@@ -423,7 +425,7 @@
     <button class="btn btn-export" id="exportFullBtn" title="匯出完整版 (含時間/作者/內容)">完整匯出</button>
     <button class="btn btn-export" id="importBtn">匯入</button>
     <button class="btn btn-export" id="refreshAllBtn">重新生成</button>
-    <button class="btn btn-export" id="updateTimestampsBtn" title="從 Threads 頁面抓取精確發文時間">更新時間</button>
+    <button class="btn btn-export" id="updateTimestampsBtn" title="從 Threads 頁面抓取精確發文時間和內文">更新資料</button>
     <button class="btn btn-clear" id="clearBtn">清除全部</button>
     <input type="file" id="importFileInput" accept=".js,.json" style="display: none;">
   </div>
@@ -431,7 +433,7 @@
   <div class="content" id="articlesContainer">
     <div class="empty-state">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/>
+        <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z" />
       </svg>
       <p>尚未儲存任何程式碼</p>
       <p class="empty-help">在 Threads 含程式碼的文章旁點擊儲存按鈕</p>
@@ -440,4 +442,5 @@
 
   <script src="popup.js"></script>
 </body>
+
 </html>
