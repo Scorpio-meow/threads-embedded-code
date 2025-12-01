@@ -9,25 +9,25 @@
     "scripting"
   ],
   "host_permissions": [
-    "https://www.threads.net/*",
-    "https://threads.net/*",
     "https://www.threads.com/*",
     "https://threads.com/*"
   ],
   "content_scripts": [
     {
       "matches": [
-        "https://www.threads.net/*",
-        "https://threads.net/*",
         "https://www.threads.com/*",
         "https://threads.com/*"
       ],
-      "js": ["content.js"],
-      "css": ["styles.css"],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "styles.css"
+      ],
       "run_at": "document_idle"
     }
   ],
   "action": {
     "default_popup": "popup.html"
-    }
   }
+}

@@ -33,7 +33,6 @@
       color: var(--text-primary);
     }
 
-    /* Header */
     .header {
       padding: 16px 20px;
       background: rgba(255, 255, 255, 0.95);
@@ -63,7 +62,6 @@
       font-weight: 600;
     }
 
-    /* Search */
     .search-box {
       padding: 12px 20px;
       background: #fff;
@@ -131,7 +129,6 @@
       background: rgba(255, 48, 64, 0.05);
     }
 
-    /* Sort Container */
     .sort-container {
       display: flex;
       align-items: center;
@@ -166,7 +163,6 @@
       box-shadow: 0 0 0 1px #000;
     }
 
-    /* Content List */
     .content {
       padding: 16px;
       display: flex;
@@ -224,7 +220,6 @@
       word-wrap: break-word;
     }
 
-    /* Code Blocks */
     .code-blocks {
       margin-top: 12px;
       display: flex;
@@ -295,7 +290,6 @@
       white-space: pre-wrap;
     }
 
-    /* Tags */
     .tags {
       display: flex;
       gap: 6px;
@@ -312,7 +306,6 @@
       font-weight: 500;
     }
 
-    /* Actions */
     .article-actions {
       margin-top: 16px;
       display: flex;
@@ -353,7 +346,6 @@
       border-color: var(--danger-color);
     }
 
-    /* Empty State */
     .empty-state {
       padding: 60px 20px;
       text-align: center;
@@ -376,7 +368,6 @@
       color: #999;
     }
 
-    /* Scrollbar */
     ::-webkit-scrollbar {
       width: 8px;
       height: 8px;
@@ -406,7 +397,6 @@
   <div class="search-box">
     <input type="text" id="searchInput" placeholder="搜尋程式碼、語言或作者...">
   </div>
-
   <div class="controls">
     <div class="sort-container">
       <label for="sortSelect">排序：</label>
@@ -429,7 +419,6 @@
     <button class="btn btn-clear" id="clearBtn">清除全部</button>
     <input type="file" id="importFileInput" accept=".js,.json" style="display: none;">
   </div>
-
   <div class="content" id="articlesContainer">
     <div class="empty-state">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
@@ -439,7 +428,6 @@
       <p class="empty-help">在 Threads 含程式碼的文章旁點擊儲存按鈕</p>
     </div>
   </div>
-
   <script src="popup.js"></script>
 </body>
 

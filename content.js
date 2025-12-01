@@ -196,7 +196,7 @@ function addSaveButtons() {
           const authorMatch = postLink.match(/\/@([^\/]+)\//);
           if (authorMatch) {
             fallbackAuthor = authorMatch[1];
-            fallbackAuthorUrl = `https://www.threads.net/@${fallbackAuthor}`;
+            fallbackAuthorUrl = `https://www.threads.com/@${fallbackAuthor}`;
             console.log('[Threads Saver] 從網址提取作者:', fallbackAuthor);
           }
         }

@@ -52,13 +52,13 @@
     transform: translateX(400px);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
   }
 }
 
-/* Popup helper text */
 .empty-help {
   font-size: 12px;
   margin-top: 8px;
