@@ -280,10 +280,82 @@ function setupEventListeners() {
   if (exportFullBtn) {
     exportFullBtn.addEventListener('click', exportFullData);
   }
-  document.getElementById('importBtn').addEventListener('click', () => {
-    document.getElementById('importFileInput').click();
+  document.getElementById('importBtn').addEventListener('click', async () => {
+    const existingInput = document.getElementById('importFileInput');
+    if (existingInput) {
+      existingInput.click();
+      return;
+    }
+    const chooseFile = confirm('要從檔案匯入？按「確定」選擇檔案，按「取消」貼上內容');
+    if (chooseFile) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.js,.json';
+      input.style.display = 'none';
+      input.id = 'importFileInput';
+      input.addEventListener('change', async (event) => {
+        try {
+          await handleImportFile(event);
+        } finally {
+          setTimeout(() => {
+            if (input && input.parentNode) input.parentNode.removeChild(input);
+          }, 200);
+        }
+      });
+      document.body.appendChild(input);
+      input.click();
+    } else {
+      const text = prompt('請貼上匯入內容 (JS/JSON)：');
+      if (!text) {
+        showToast('未貼上內容');
+        return;
+      }
+      try {
+        const imported = parseJsEmbedFile(text);
+        if (!imported || imported.length === 0) {
+          showToast('未辨識到任何匯入項目');
+          return;
+        }
+        const importMode = confirm(
+          `找到 ${imported.length} 筆資料。
+\n按「確定」合併到現有資料（跳過重複項目）
+按「取消」取代所有現有資料`
+        );
+        const result = await chrome.storage.local.get(['savedArticles']);
+        let savedArticles = result.savedArticles || [];
+        if (importMode) {
+          const existingLinks = new Set(savedArticles.map(a => a.postLink));
+          const newArticles = imported.filter(a => !existingLinks.has(a.postLink));
+          if (newArticles.length === 0) {
+            showToast('所有項目都已存在，無需匯入');
+          } else {
+            savedArticles = [...savedArticles, ...newArticles];
+            await chrome.storage.local.set({ savedArticles });
+            allArticles = savedArticles;
+            filteredArticles = [...allArticles];
+            sortArticles();
+            renderArticles();
+            showToast(`已匯入 ${newArticles.length} 筆新資料（跳過 ${imported.length - newArticles.length} 筆重複）`);
+          }
+        } else {
+          savedArticles = imported;
+          await chrome.storage.local.set({ savedArticles });
+          allArticles = savedArticles;
+          filteredArticles = [...allArticles];
+          sortArticles();
+          renderArticles();
+          showToast(`已匯入 ${imported.length} 筆資料（取代原有資料）`);
+        }
+      } catch (err) {
+        console.error('[Popup] paste import error', err);
+        showToast('貼上匯入失敗: ' + (err.message || '未知錯誤'));
+      }
+    }
   });
-  document.getElementById('importFileInput').addEventListener('change', handleImportFile);
+  const importFileInput = document.getElementById('importFileInput');
+  if (importFileInput) {
+    importFileInput.addEventListener('change', handleImportFile);
+  }
   const refreshAllBtn = document.getElementById('refreshAllBtn');
   if (refreshAllBtn) {
     refreshAllBtn.addEventListener('click', refreshAllEmbedCodes);
@@ -400,6 +472,12 @@ function renderArticles() {
       embedWrapper.className = 'embed-snippet';
       const pre = document.createElement('pre');
       pre.style.margin = '0';
+      pre.style.whiteSpace = 'pre-wrap';
+      pre.style.overflowWrap = 'anywhere';
+      pre.style.wordBreak = 'break-word';
+      pre.style.maxWidth = '100%';
+      pre.style.boxSizing = 'border-box';
+      pre.style.overflowX = 'auto';
       const code = document.createElement('code');
       const embedText = (article.embedCode || '').substring(0, 300) + ((article.embedCode || '').length > 300 ? '\n...' : '');
       code.textContent = embedText;
@@ -717,6 +795,15 @@ async function handleImportFile(event) {
   } catch (err) {
     console.error('[Popup] 匯入失敗:', err);
     showToast('匯入失敗：' + (err.message || '檔案格式錯誤'));
+  } finally {
+    try {
+      const target = event && event.target;
+      if (target && target.id === 'importFileInput' && target.parentNode) {
+        target.parentNode.removeChild(target);
+      }
+    } catch (e) {
+      // ignore
+    }
   }
 }
 function parseJsEmbedFile(content) {
